@@ -19,7 +19,7 @@ class MainWindow(QMainWindow):
         self.graph_manager = GraphManager()
         self.style_manager = StyleManager()
         
-        self.setWindowTitle("Mini Social Networks Analysis Tool")
+        self.setWindowTitle("FEGO GRAPHI TOOL")
         self.setMinimumSize(1200, 800)
         
         self.init_ui()
