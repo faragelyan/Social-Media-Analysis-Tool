@@ -122,23 +122,42 @@ class VisualizationPanel(QWidget):
         else:
             self.current_layout = layout_name
             
-        # Generate node positions
-        if layout_name == "force" or layout_name == "fruchterman":
-            pos = nx.spring_layout(G, seed=42)
-        elif layout_name == "spring":
-            pos = nx.spring_layout(G, seed=42)
-        elif layout_name == "circular":
-            pos = nx.circular_layout(G)
-        elif layout_name == "spectral":
-            pos = nx.spectral_layout(G)
-        elif layout_name == "kamada":
-            pos = nx.kamada_kawai_layout(G)
-        elif layout_name == "hierarchical" or layout_name == "tree":
-            pos = nx.drawing.nx_agraph.graphviz_layout(G, prog="dot")
-        elif layout_name == "radial":
-            pos = nx.drawing.nx_agraph.graphviz_layout(G, prog="twopi")
-        else:
-            # Default to spring layout
+        try:
+            # Generate node positions
+            if layout_name == "force" or layout_name == "fruchterman":
+                pos = nx.spring_layout(G, k=1/np.sqrt(G.number_of_nodes()), iterations=50, seed=42)
+            elif layout_name == "spring":
+                pos = nx.spring_layout(G, k=2/np.sqrt(G.number_of_nodes()), iterations=50, seed=42)
+            elif layout_name == "circular":
+                pos = nx.circular_layout(G)
+            elif layout_name == "spectral":
+                pos = nx.spectral_layout(G)
+            elif layout_name == "kamada":
+                pos = nx.kamada_kawai_layout(G)
+            elif layout_name == "hierarchical" or layout_name == "tree":
+                # Create a spanning tree for hierarchical layout
+                T = nx.minimum_spanning_tree(G.to_undirected())
+                pos = nx.spring_layout(T, k=2, iterations=50)
+                # Adjust y-coordinates to create levels
+                root = list(T.nodes())[0]
+                levels = nx.single_source_shortest_path_length(T, root)
+                for node in pos:
+                    pos[node][1] = -levels[node]  # Negative to plot from top to bottom
+            elif layout_name == "radial":
+                # Create a radial layout manually
+                pos = nx.circular_layout(G)
+                # Get centrality to determine radii
+                centrality = nx.degree_centrality(G)
+                # Adjust positions based on centrality
+                for node in G.nodes():
+                    radius = 1 - centrality[node]  # More central nodes closer to center
+                    pos[node] = pos[node] * radius
+            else:
+                # Default to spring layout
+                pos = nx.spring_layout(G, seed=42)
+                
+        except Exception as e:
+            print(f"Layout error: {str(e)}, falling back to spring layout")
             pos = nx.spring_layout(G, seed=42)
         
         # Get node colors (default or community-based)
@@ -149,8 +168,8 @@ class VisualizationPanel(QWidget):
         
         # Get node sizes from attribute if available
         node_sizes = self.node_size
-        if 'size' in G.nodes[list(G.nodes)[0]]:
-            sizes = [G.nodes[n]['size'] for n in G.nodes]
+        if list(G.nodes()) and 'size' in G.nodes[list(G.nodes())[0]]:
+            sizes = [G.nodes[n]['size'] for n in G.nodes()]
             min_size, max_size = min(sizes), max(sizes)
             norm_sizes = [((s - min_size) / (max_size - min_size + 0.01)) * 900 + 100 for s in sizes]
             node_sizes = norm_sizes
