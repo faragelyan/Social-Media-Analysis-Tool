@@ -8,7 +8,7 @@ from PyQt5.QtGui import QColor
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-
+#Requirement 1: Node and Edge Attributes
 class AttributesPanel(QWidget):
     def __init__(self, graph_manager, visualization_panel):
         super().__init__()
